@@ -1,9 +1,5 @@
 name: Build and lint
 on:
-  push:
-    paths:
-      - 'linux-cachyos/PKGBUILD'
-      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 env:
@@ -14,7 +10,7 @@ jobs:
     name: linux-cachyos
     strategy:
       matrix:
-        toolchain: [gcc, clang]
+        toolchain: [clang]
 
     runs-on: ubuntu-latest
     container: archlinux:base-devel
@@ -61,7 +57,7 @@ jobs:
       env:
         _build_zfs: yes
         _build_nvidia_open: yes
-        _use_llvm_lto: ${{ matrix.toolchain == 'gcc' && 'none' || 'thin' }}
+        _use_llvm_lto: thin
       run: |
           cd "linux-cachyos"
           sudo -H -E -u builder makepkg --skipchecksums --syncdeps --noconfirm
