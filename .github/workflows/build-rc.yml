@@ -1,4 +1,4 @@
-name: Build and lint
+name: Build and lint - RC
 on:
   workflow_dispatch:
 
