@@ -58,7 +58,6 @@ jobs:
     - name: Build package (${{ matrix.toolchain }})
       id: makepkg
       env:
-        _build_zfs: yes
         _build_nvidia_open: yes
         _use_llvm_lto: thin
       run: |
