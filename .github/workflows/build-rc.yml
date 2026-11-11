@@ -24,10 +24,18 @@ jobs:
           [cachyos]
           Server = https://mirror.cachyos.org/repo/x86_64/cachyos
           EOF
+          
+          # Install dependencies including curl for fetching the key directly
+          pacman -Syu --noconfirm --needed ccache gnupg pahole curl
+          
+          # Initialize pacman keyring
           pacman-key --init
-          pacman-key --recv-keys F3B607488DB35A47 --keyserver hkps://keys.openpgp.org
+          
+          # Fetch CachyOS key directly via HTTPS and import it (bypasses flaky keyservers)
+          curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/882DCFE48E2051D48E2562ABF3B607488DB35A47" -o /tmp/cachyos.gpg
+          pacman-key --add /tmp/cachyos.gpg
           pacman-key --lsign-key F3B607488DB35A47
-          pacman -Syu --noconfirm --needed ccache gnupg pahole
+          
           # Setup builder user
           useradd builder -m
           echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
@@ -41,7 +49,9 @@ jobs:
           sudo -u builder mkdir -p ${{ env.CCACHE_DIR }}
     - name: Import CachyOS kernel signing key
       run: |
-          sudo -u builder gpg --batch --keyserver hkps://keys.openpgp.org --recv-keys C3C4820857F654FE
+          # Also fetch this key directly to avoid keyserver issues
+          curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/C3C4820857F654FE" -o /tmp/kernel-signing.gpg
+          sudo -u builder gpg --batch --import /tmp/kernel-signing.gpg
     - name: Setup ccache
       id: cache
       uses: actions/cache@v4
