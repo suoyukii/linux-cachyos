@@ -19,22 +19,23 @@ jobs:
       uses: actions/checkout@v4
     - name: Setup build environment
       run: |
-          # Use CachyOS repository
+          # 1. 先初始化 keyring 并安装 curl（此时尚未添加 cachyos 仓库，不会触发签名错误）
+          pacman-key --init
+          pacman -Sy --noconfirm --needed curl
+          
+          # 2. 通过 HTTPS 直接下载 CachyOS 签名密钥并导入
+          curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/882DCFE48E2051D48E2562ABF3B607488DB35A47" -o /tmp/cachyos.gpg
+          pacman-key --add /tmp/cachyos.gpg
+          pacman-key --lsign-key 882DCFE48E2051D48E2562ABF3B607488DB35A47
+          
+          # 3. 密钥就位后，再写入 CachyOS 仓库配置
           cat << 'EOF' >> /etc/pacman.conf
           [cachyos]
           Server = https://mirror.cachyos.org/repo/x86_64/cachyos
           EOF
           
-          # Install dependencies including curl for fetching the key directly
-          pacman -Syu --noconfirm --needed ccache gnupg pahole curl
-          
-          # Initialize pacman keyring
-          pacman-key --init
-          
-          # Fetch CachyOS key directly via HTTPS and import it (bypasses flaky keyservers)
-          curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/882DCFE48E2051D48E2562ABF3B607488DB35A47" -o /tmp/cachyos.gpg
-          pacman-key --add /tmp/cachyos.gpg
-          pacman-key --lsign-key F3B607488DB35A47
+          # 4. 现在同步并安装所需包
+          pacman -Syu --noconfirm --needed ccache gnupg pahole
           
           # Setup builder user
           useradd builder -m
@@ -49,7 +50,6 @@ jobs:
           sudo -u builder mkdir -p ${{ env.CCACHE_DIR }}
     - name: Import CachyOS kernel signing key
       run: |
-          # Also fetch this key directly to avoid keyserver issues
           curl -fsSL "https://keys.openpgp.org/vks/v1/by-fingerprint/C3C4820857F654FE" -o /tmp/kernel-signing.gpg
           sudo -u builder gpg --batch --import /tmp/kernel-signing.gpg
     - name: Setup ccache
